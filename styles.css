@@ -252,6 +252,10 @@ input::placeholder, textarea::placeholder { color: var(--paper-24); }
   backdrop-filter: blur(16px);
 }
 
+.topbar > div:first-child { min-width: 0; }
+.topbar-actions { display: flex; align-items: center; gap: .55rem; flex: 0 0 auto; }
+.topbar-lock { display: none; }
+
 .kicker { margin: 0; font-size: .74rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
 .header-date { margin: .12rem 0 0; color: var(--paper-56); font-size: .86rem; }
 
@@ -436,7 +440,14 @@ input::placeholder, textarea::placeholder { color: var(--paper-24); }
   body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   .sidebar { display: none; }
   .workspace { margin-left: 0; }
-  .topbar { min-height: 74px; padding: .85rem 1rem; }
+  .topbar {
+    min-height: calc(74px + env(safe-area-inset-top, 0px));
+    padding-top: calc(.85rem + env(safe-area-inset-top, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+    padding-bottom: .85rem;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  }
+  .topbar-lock { display: grid; }
   .views { padding: 2.3rem 1rem 3rem; }
   .view-heading { margin-bottom: 1.6rem; }
   .view-heading h1 { font-size: clamp(2.7rem, 14vw, 4.2rem); }
@@ -447,7 +458,10 @@ input::placeholder, textarea::placeholder { color: var(--paper-24); }
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     border-top: 1px solid var(--paper-10);
-    padding: .5rem .45rem calc(.5rem + env(safe-area-inset-bottom));
+    padding-top: .5rem;
+    padding-right: max(.45rem, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(.5rem + env(safe-area-inset-bottom, 0px));
+    padding-left: max(.45rem, env(safe-area-inset-left, 0px));
     background: rgb(25 25 25 / 94%);
     backdrop-filter: blur(18px);
   }
@@ -474,6 +488,13 @@ input::placeholder, textarea::placeholder { color: var(--paper-24); }
   .modal-actions .button { flex: 1; }
   .date-control { width: 100%; }
   .date-picker { flex: 1; }
+}
+
+@media (max-width: 360px) {
+  .topbar { gap: .6rem; }
+  .topbar-actions { gap: .35rem; }
+  .topbar .header-date { max-width: 96px; }
+  #header-action { padding-inline: .6rem; font-size: .8rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

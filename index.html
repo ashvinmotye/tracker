@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;400;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
   <noscript><div class="noscript">Tracker needs JavaScript to encrypt and manage your local data.</div></noscript>
@@ -112,7 +112,12 @@
           <p id="view-kicker" class="kicker">Today</p>
           <p id="header-date" class="header-date"></p>
         </div>
-        <button id="header-action" class="button primary compact" type="button">Add entry</button>
+        <div class="topbar-actions">
+          <button id="header-action" class="button primary compact" type="button">Add entry</button>
+          <button id="mobile-lock-button" class="icon-button topbar-lock" type="button" aria-label="Lock Tracker">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3M5.5 10h13A1.5 1.5 0 0 1 20 11.5v8A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-8A1.5 1.5 0 0 1 5.5 10ZM12 14v3"/></svg>
+          </button>
+        </div>
       </header>
 
       <div class="views">
@@ -435,6 +440,6 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script src="app.js" defer></script>
+  <script src="app.js?v=5" defer></script>
 </body>
 </html>

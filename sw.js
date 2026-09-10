@@ -1,9 +1,9 @@
-const CACHE_NAME = "tracker-shell-v3";
+const CACHE_NAME = "tracker-shell-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./app.js",
+  "./styles.css?v=5",
+  "./app.js?v=5",
   "./manifest.webmanifest",
   "./icons/icon.svg",
   "./icons/favicon-32.png",

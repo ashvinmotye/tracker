@@ -69,6 +69,7 @@
       showView(link.dataset.viewLink);
     }));
     $("#lock-button").addEventListener("click", lockTracker);
+    $("#mobile-lock-button").addEventListener("click", lockTracker);
     $("#header-action").addEventListener("click", handleHeaderAction);
 
     $("#date-prev").addEventListener("click", () => shiftHistoryDate(-1));
