@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#191919">
+  <meta name="description" content="A private, local tracker for the things that matter to you.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tracker">
+  <title>Tracker</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;400;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <noscript><div class="noscript">Tracker needs JavaScript to encrypt and manage your local data.</div></noscript>
+
+  <main id="gate" class="gate" aria-labelledby="gate-title">
+    <section class="gate-card">
+      <img class="gate-icon" src="icons/icon.svg" alt="">
+      <p class="wordmark" id="gate-title">Tracker</p>
+
+      <form id="setup-form" class="gate-form" hidden>
+        <div class="gate-copy">
+          <h1>Create your private tracker</h1>
+          <p>Your password encrypts everything saved on this device. It cannot be recovered.</p>
+        </div>
+        <label class="field">
+          <span>Master password</span>
+          <input id="setup-password" type="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label class="field">
+          <span>Confirm password</span>
+          <input id="setup-confirm" type="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <p id="setup-error" class="form-error" role="alert"></p>
+        <button class="button primary full" type="submit">Create Tracker</button>
+        <button id="restore-start" class="button quiet full" type="button">Restore encrypted backup</button>
+      </form>
+
+      <form id="unlock-form" class="gate-form" hidden>
+        <div class="gate-copy">
+          <h1>Welcome back</h1>
+          <p>Enter your master password to unlock your data.</p>
+        </div>
+        <label class="field">
+          <span>Master password</span>
+          <input id="unlock-password" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="unlock-error" class="form-error" role="alert"></p>
+        <button class="button primary full" type="submit">Unlock</button>
+      </form>
+
+      <form id="restore-form" class="gate-form" hidden>
+        <div class="gate-copy">
+          <h1>Restore backup</h1>
+          <p id="restore-file-name">Choose an encrypted Tracker backup.</p>
+        </div>
+        <label class="file-button">
+          <input id="restore-file" type="file" accept="application/json,.json">
+          <span class="button secondary full">Choose backup</span>
+        </label>
+        <label class="field">
+          <span>Backup password</span>
+          <input id="restore-password" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="restore-error" class="form-error" role="alert"></p>
+        <button class="button primary full" type="submit">Restore and unlock</button>
+        <button id="restore-cancel" class="button quiet full" type="button">Cancel</button>
+      </form>
+    </section>
+  </main>
+
+  <div id="app" class="app" hidden>
+    <aside class="sidebar">
+      <a class="brand" href="#today" data-view-link="today" aria-label="Tracker home">
+        <img src="icons/icon.svg" alt="">
+        <span>Tracker</span>
+      </a>
+      <nav class="nav" aria-label="Main navigation">
+        <button class="nav-item active" data-view="today" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7.5h16M7.5 3v3M16.5 3v3M5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5Z"/></svg>
+          <span>Today</span>
+        </button>
+        <button class="nav-item" data-view="history" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.49-6.01L3.5 8.5M3.5 4v4.5H8M12 7.5V12l3 2"/></svg>
+          <span>History</span>
+        </button>
+        <button class="nav-item" data-view="categories" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+          <span>Categories</span>
+        </button>
+        <button class="nav-item" data-view="settings" type="button">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.25A3.25 3.25 0 1 0 12 8.75a3.25 3.25 0 0 0 0 6.5ZM19 12a7 7 0 0 0-.08-1l2.03-1.58-2-3.46-2.5 1A7.1 7.1 0 0 0 14.72 6l-.38-2.66h-4L9.96 6a7.1 7.1 0 0 0-1.73 1L5.72 6l-2 3.46L5.76 11a7 7 0 0 0 0 2l-2.04 1.58 2 3.46 2.51-1a7.1 7.1 0 0 0 1.73 1l.38 2.66h4l.38-2.66a7.1 7.1 0 0 0 1.73-1l2.5 1 2-3.46L18.92 13c.05-.33.08-.66.08-1Z"/></svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+      <button id="lock-button" class="lock-button" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3M5.5 10h13A1.5 1.5 0 0 1 20 11.5v8A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-8A1.5 1.5 0 0 1 5.5 10ZM12 14v3"/></svg>
+        <span>Lock</span>
+      </button>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div>
+          <p id="view-kicker" class="kicker">Today</p>
+          <p id="header-date" class="header-date"></p>
+        </div>
+        <button id="header-action" class="button primary compact" type="button">Add entry</button>
+      </header>
+
+      <div class="views">
+        <section id="view-today" class="view active" aria-labelledby="today-title">
+          <div class="view-heading">
+            <h1 id="today-title">Today</h1>
+            <p id="today-summary" class="view-summary"></p>
+          </div>
+          <div id="today-content"></div>
+        </section>
+
+        <section id="view-history" class="view" aria-labelledby="history-title">
+          <div class="view-heading history-heading">
+            <div>
+              <h1 id="history-title">History</h1>
+              <p id="history-summary" class="view-summary"></p>
+            </div>
+            <div class="date-control">
+              <button id="date-prev" class="icon-button" type="button" aria-label="Previous day">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <label class="date-picker">
+                <span class="sr-only">History date</span>
+                <input id="history-date" type="date">
+              </label>
+              <button id="date-next" class="icon-button" type="button" aria-label="Next day">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div id="history-content"></div>
+        </section>
+
+        <section id="view-categories" class="view" aria-labelledby="categories-title">
+          <div class="view-heading">
+            <h1 id="categories-title">Categories</h1>
+            <p id="categories-summary" class="view-summary"></p>
+          </div>
+          <div id="categories-content"></div>
+        </section>
+
+        <section id="view-settings" class="view" aria-labelledby="settings-title">
+          <div class="view-heading">
+            <h1 id="settings-title">Settings</h1>
+            <p class="view-summary">Manage your password and local data.</p>
+          </div>
+          <div class="settings-grid">
+            <section class="settings-card">
+              <div>
+                <p class="section-label">Security</p>
+                <h2>Master password</h2>
+                <p>Change the password used to encrypt this tracker.</p>
+              </div>
+              <button id="change-password-button" class="button secondary" type="button">Change password</button>
+            </section>
+
+            <section class="settings-card">
+              <div>
+                <p class="section-label">Backup</p>
+                <h2>Encrypted export</h2>
+                <p>Create a private backup that requires your master password to restore.</p>
+              </div>
+              <button id="export-encrypted" class="button secondary" type="button">Export backup</button>
+            </section>
+
+            <section class="settings-card">
+              <div>
+                <p class="section-label">Analysis</p>
+                <h2>Copy for AI</h2>
+                <p>Copy structured JSON to paste directly into an AI chat. Clipboard contents are not encrypted.</p>
+              </div>
+              <button id="copy-for-ai" class="button secondary" type="button">Copy for AI</button>
+            </section>
+
+            <section class="settings-card">
+              <div>
+                <p class="section-label">Restore</p>
+                <h2>Import data</h2>
+                <p>Merge or replace data from an encrypted backup or readable Tracker export.</p>
+              </div>
+              <label class="file-button inline-file">
+                <input id="import-file" type="file" accept="application/json,.json">
+                <span class="button secondary">Choose file</span>
+              </label>
+            </section>
+
+            <section id="install-card" class="settings-card" hidden>
+              <div>
+                <p class="section-label">App</p>
+                <h2>Install Tracker</h2>
+                <p>Add Tracker to this device for quick access and offline use.</p>
+              </div>
+              <button id="install-button" class="button secondary" type="button">Install</button>
+            </section>
+
+            <section class="settings-card danger-card">
+              <div>
+                <p class="section-label">Device data</p>
+                <h2>Reset Tracker</h2>
+                <p>Permanently remove all categories and entries from this device.</p>
+              </div>
+              <button id="reset-button" class="button danger" type="button">Reset Tracker</button>
+            </section>
+          </div>
+          <p id="data-counts" class="data-counts"></p>
+        </section>
+      </div>
+    </div>
+
+    <nav class="mobile-nav" aria-label="Main navigation">
+      <button class="nav-item active" data-view="today" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7.5h16M7.5 3v3M16.5 3v3M5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5Z"/></svg>
+        <span>Today</span>
+      </button>
+      <button class="nav-item" data-view="history" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.49-6.01L3.5 8.5M3.5 4v4.5H8M12 7.5V12l3 2"/></svg>
+        <span>History</span>
+      </button>
+      <button class="nav-item" data-view="categories" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+        <span>Categories</span>
+      </button>
+      <button class="nav-item" data-view="settings" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.25A3.25 3.25 0 1 0 12 8.75a3.25 3.25 0 0 0 0 6.5ZM19 12a7 7 0 0 0-.08-1l2.03-1.58-2-3.46-2.5 1A7.1 7.1 0 0 0 14.72 6l-.38-2.66h-4L9.96 6a7.1 7.1 0 0 0-1.73 1L5.72 6l-2 3.46L5.76 11a7 7 0 0 0 0 2l-2.04 1.58 2 3.46 2.51-1a7.1 7.1 0 0 0 1.73 1l.38 2.66h4l.38-2.66a7.1 7.1 0 0 0 1.73-1l2.5 1 2-3.46L18.92 13c.05-.33.08-.66.08-1Z"/></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+  </div>
+
+  <dialog id="category-dialog" class="modal">
+    <form id="category-form" method="dialog" class="modal-card">
+      <div class="modal-head">
+        <div>
+          <p class="section-label">Category</p>
+          <h2 id="category-dialog-title">New category</h2>
+        </div>
+        <button class="icon-button" data-close-dialog type="button" aria-label="Close">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <input id="category-id" type="hidden">
+      <label class="field">
+        <span>Name</span>
+        <input id="category-name" maxlength="50" autocomplete="off" required>
+      </label>
+      <label class="field">
+        <span>Input type</span>
+        <select id="category-type">
+          <option value="scale">Grade scale</option>
+          <option value="number">Number</option>
+          <option value="yesno">Yes or no</option>
+          <option value="text">Free text</option>
+        </select>
+      </label>
+      <div id="range-fields" class="field-row">
+        <label class="field">
+          <span>Minimum</span>
+          <input id="category-min" type="number" inputmode="decimal" step="any" required>
+        </label>
+        <label class="field">
+          <span>Maximum</span>
+          <input id="category-max" type="number" inputmode="decimal" step="any" required>
+        </label>
+      </div>
+      <div id="step-unit-fields" class="field-row">
+        <label class="field">
+          <span>Step</span>
+          <input id="category-step" type="number" inputmode="decimal" min="0.001" step="any" required>
+        </label>
+        <label id="unit-field" class="field">
+          <span>Unit <small>optional</small></span>
+          <input id="category-unit" maxlength="20" autocomplete="off" placeholder="hours, kg, bpm">
+        </label>
+      </div>
+      <p id="category-error" class="form-error" role="alert"></p>
+      <div class="modal-actions">
+        <button class="button quiet" data-close-dialog type="button">Cancel</button>
+        <button class="button primary" type="submit">Save category</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="entry-dialog" class="modal">
+    <form id="entry-form" method="dialog" class="modal-card">
+      <div class="modal-head">
+        <div>
+          <p class="section-label">Entry</p>
+          <h2 id="entry-dialog-title">New entry</h2>
+        </div>
+        <button class="icon-button" data-close-dialog type="button" aria-label="Close">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <input id="entry-id" type="hidden">
+      <label class="field">
+        <span>Category</span>
+        <select id="entry-category" required></select>
+      </label>
+      <div id="scale-input-wrap" class="scale-wrap" hidden>
+        <div class="scale-readout">
+          <span id="scale-value">0</span>
+          <span id="scale-unit"></span>
+        </div>
+        <input id="entry-scale" class="range-input" type="range">
+        <div class="range-limits"><span id="scale-min"></span><span id="scale-max"></span></div>
+      </div>
+      <label id="number-input-wrap" class="field" hidden>
+        <span>Value <small id="number-unit"></small></span>
+        <input id="entry-number" type="number" inputmode="decimal">
+      </label>
+      <fieldset id="yesno-input-wrap" class="choice-group yesno-group" hidden>
+        <legend>Value</legend>
+        <label class="radio-card">
+          <input type="radio" name="entry-yesno" value="yes">
+          <span><strong>Yes</strong></span>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="entry-yesno" value="no">
+          <span><strong>No</strong></span>
+        </label>
+      </fieldset>
+      <label id="text-input-wrap" class="field" hidden>
+        <span>Text</span>
+        <textarea id="entry-text" rows="6" maxlength="8000"></textarea>
+      </label>
+      <label class="field">
+        <span>Date and time</span>
+        <input id="entry-time" type="datetime-local" required>
+      </label>
+      <label id="entry-note-field" class="field">
+        <span>Notes <small>optional</small></span>
+        <textarea id="entry-note" rows="5" maxlength="4000"></textarea>
+      </label>
+      <p id="entry-error" class="form-error" role="alert"></p>
+      <div class="modal-actions">
+        <button class="button quiet" data-close-dialog type="button">Cancel</button>
+        <button class="button primary" type="submit">Save entry</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="password-dialog" class="modal">
+    <form id="password-form" method="dialog" class="modal-card narrow">
+      <div class="modal-head">
+        <div>
+          <p class="section-label">Security</p>
+          <h2>Change password</h2>
+        </div>
+        <button class="icon-button" data-close-dialog type="button" aria-label="Close">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <label class="field">
+        <span>Current password</span>
+        <input id="current-password" type="password" autocomplete="current-password" required>
+      </label>
+      <label class="field">
+        <span>New password</span>
+        <input id="new-password" type="password" autocomplete="new-password" minlength="8" required>
+      </label>
+      <label class="field">
+        <span>Confirm new password</span>
+        <input id="confirm-new-password" type="password" autocomplete="new-password" minlength="8" required>
+      </label>
+      <p id="password-error" class="form-error" role="alert"></p>
+      <div class="modal-actions">
+        <button class="button quiet" data-close-dialog type="button">Cancel</button>
+        <button class="button primary" type="submit">Update password</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="import-dialog" class="modal">
+    <form id="import-form" method="dialog" class="modal-card narrow">
+      <div class="modal-head">
+        <div>
+          <p class="section-label">Import</p>
+          <h2>Import Tracker data</h2>
+        </div>
+        <button class="icon-button" data-close-dialog type="button" aria-label="Close">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <p id="import-description" class="dialog-copy"></p>
+      <label id="import-password-field" class="field" hidden>
+        <span>Backup password</span>
+        <input id="import-password" type="password" autocomplete="current-password">
+      </label>
+      <fieldset class="choice-group">
+        <legend>Import method</legend>
+        <label class="radio-card">
+          <input type="radio" name="import-mode" value="merge" checked>
+          <span><strong>Merge</strong><small>Keep current data and add anything new.</small></span>
+        </label>
+        <label class="radio-card">
+          <input type="radio" name="import-mode" value="replace">
+          <span><strong>Replace</strong><small>Remove current categories and entries first.</small></span>
+        </label>
+      </fieldset>
+      <p id="import-error" class="form-error" role="alert"></p>
+      <div class="modal-actions">
+        <button class="button quiet" data-close-dialog type="button">Cancel</button>
+        <button class="button primary" type="submit">Import</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirm-dialog" class="modal">
+    <form method="dialog" class="modal-card narrow">
+      <div>
+        <p id="confirm-kicker" class="section-label">Confirm</p>
+        <h2 id="confirm-title">Are you sure?</h2>
+        <p id="confirm-message" class="dialog-copy"></p>
+      </div>
+      <div class="modal-actions">
+        <button id="confirm-cancel" class="button quiet" value="cancel">Cancel</button>
+        <button id="confirm-accept" class="button danger" value="confirm">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>
