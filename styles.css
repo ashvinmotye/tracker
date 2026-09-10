@@ -127,6 +127,7 @@ input,
 select,
 textarea {
   width: 100%;
+  font-size: 1rem;
   border: 1px solid var(--paper-16);
   border-radius: var(--radius-small);
   background: var(--paper-04);
