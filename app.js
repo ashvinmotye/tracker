@@ -11,6 +11,7 @@
 
   const textEncoder = new TextEncoder();
   const textDecoder = new TextDecoder();
+  const categoryCollator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
   let state = null;
   let sessionKey = null;
@@ -282,7 +283,7 @@
       return;
     }
 
-    root.innerHTML = `<div class="category-grid">${state.categories.map(category => {
+    root.innerHTML = `<div class="category-grid">${sortedCategories().map(category => {
       const entries = todayEntries
         .filter(entry => entry.categoryId === category.id)
         .sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt));
@@ -351,7 +352,7 @@
       return;
     }
 
-    root.innerHTML = `<div class="category-list">${state.categories.map(category => {
+    root.innerHTML = `<div class="category-list">${sortedCategories().map(category => {
       const count = state.entries.filter(entry => entry.categoryId === category.id).length;
       return `<article class="category-row">
         <div><h2>${escapeHtml(category.name)}</h2><p>${plural(count, "entry", "entries")}</p></div>
@@ -479,7 +480,7 @@
     $("#entry-error").textContent = "";
     $("#entry-id").value = entryId || "";
     $("#entry-dialog-title").textContent = entryId ? "Edit entry" : "New entry";
-    $("#entry-category").innerHTML = state.categories.map(category => `<option value="${category.id}">${escapeHtml(category.name)}</option>`).join("");
+    $("#entry-category").innerHTML = sortedCategories().map(category => `<option value="${category.id}">${escapeHtml(category.name)}</option>`).join("");
 
     if (entryId) {
       const entry = state.entries.find(item => item.id === entryId);
@@ -681,7 +682,7 @@
   }
 
   function buildReadableExport() {
-    const categories = state.categories.map(category => ({
+    const categories = sortedCategories().map(category => ({
       id: category.id,
       name: category.name,
       inputType: category.type,
@@ -717,6 +718,10 @@
       categories,
       entries
     };
+  }
+
+  function sortedCategories(categories = state.categories) {
+    return [...categories].sort((a, b) => categoryCollator.compare(a.name, b.name));
   }
 
   async function copyText(value) {
