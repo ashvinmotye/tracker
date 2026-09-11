@@ -8,6 +8,7 @@
   const SCHEMA_VERSION = 1;
   const FORMAT_VERSION = 1;
   const PBKDF2_ITERATIONS = 310000;
+  const AUTO_LOCK_MS = 30000;
 
   const textEncoder = new TextEncoder();
   const textDecoder = new TextDecoder();
@@ -23,6 +24,7 @@
   let confirmAction = null;
   let deferredInstallPrompt = null;
   let toastTimer = null;
+  let autoLockTimer = null;
   let saveChain = Promise.resolve();
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -96,7 +98,11 @@
 
     $("#change-password-button").addEventListener("click", openPasswordDialog);
     $("#export-encrypted").addEventListener("click", exportEncrypted);
-    $("#copy-for-ai").addEventListener("click", copyForAI);
+    $("#copy-today").addEventListener("click", event => copyForAI("today", [localDateKey(new Date())], event.currentTarget));
+    $("#copy-specific-dates").addEventListener("click", openCopyDatesDialog);
+    $("#copy-all").addEventListener("click", event => copyForAI("all", null, event.currentTarget));
+    $("#copy-dates-form").addEventListener("submit", copySelectedDates);
+    $("#copy-date-list").addEventListener("change", updateCopyDatesSelection);
     $("#import-file").addEventListener("change", prepareImport);
     $("#reset-button").addEventListener("click", confirmReset);
     $("#install-button").addEventListener("click", installApp);
@@ -116,6 +122,19 @@
       deferredInstallPrompt = null;
       $("#install-card").hidden = true;
       showToast("Tracker installed");
+    });
+
+    ["pointerdown", "pointermove", "keydown", "touchstart", "scroll", "wheel"].forEach(type => {
+      window.addEventListener(type, resetAutoLockTimer, { passive: true });
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && state) lockTracker();
+    });
+    window.addEventListener("pagehide", () => {
+      if (state) lockTracker();
+    });
+    document.addEventListener("freeze", () => {
+      if (state) lockTracker();
     });
   }
 
@@ -231,15 +250,40 @@
     historyDate = localDateKey(new Date());
     $("#history-date").value = historyDate;
     showView("today");
+    resetAutoLockTimer();
   }
 
   function lockTracker() {
+    clearTimeout(autoLockTimer);
+    autoLockTimer = null;
     state = null;
     sessionKey = null;
     sessionSalt = null;
+    pendingImport = null;
+    confirmAction = null;
     activeView = "today";
     closeAllDialogs();
+    clearRenderedData();
     showGateForm("unlock");
+  }
+
+  function resetAutoLockTimer() {
+    if (!state) return;
+    clearTimeout(autoLockTimer);
+    autoLockTimer = setTimeout(lockTracker, AUTO_LOCK_MS);
+  }
+
+  function clearRenderedData() {
+    ["#today-content", "#history-content", "#categories-content", "#copy-date-list"].forEach(selector => {
+      $(selector).replaceChildren();
+    });
+    ["#today-summary", "#history-summary", "#categories-summary", "#data-counts"].forEach(selector => {
+      $(selector).textContent = "";
+    });
+    ["#category-form", "#entry-form", "#password-form", "#copy-dates-form", "#import-form", "#unlock-form"].forEach(selector => {
+      $(selector).reset();
+    });
+    $("#confirm-message").textContent = "";
   }
 
   function showView(view) {
@@ -371,6 +415,10 @@
 
   function renderSettings() {
     $("#data-counts").textContent = `${plural(state.categories.length, "category", "categories")} · ${plural(state.entries.length, "entry", "entries")} · Stored encrypted on this device`;
+    const dates = availableEntryDates();
+    $("#copy-today").disabled = !dates.some(item => item.key === localDateKey(new Date()));
+    $("#copy-specific-dates").disabled = dates.length === 0;
+    $("#copy-all").disabled = state.entries.length === 0;
   }
 
   function emptyState(title, copy, actionLabel, action) {
@@ -502,6 +550,13 @@
   function updateEntryInput(initialValue = null) {
     const category = state.categories.find(item => item.id === $("#entry-category").value);
     if (!category) return;
+    const categoryCount = $("#entry-category-count");
+    const today = localDateKey(new Date());
+    const entriesToday = $("#entry-id").value
+      ? 0
+      : state.entries.filter(entry => entry.categoryId === category.id && localDateKey(new Date(entry.occurredAt)) === today).length;
+    categoryCount.textContent = entriesToday ? `${plural(entriesToday, "entry", "entries")} today` : "";
+    categoryCount.hidden = entriesToday === 0;
     const isScale = category.type === "scale";
     const isNumber = category.type === "number";
     const isYesNo = category.type === "yesno";
@@ -668,21 +723,66 @@
     }
   }
 
-  async function copyForAI() {
-    const button = $("#copy-for-ai");
+  function openCopyDatesDialog() {
+    const dates = availableEntryDates();
+    if (!dates.length) {
+      showToast("There are no entries to copy");
+      return;
+    }
+
+    $("#copy-dates-error").textContent = "";
+    $("#copy-selected-dates").disabled = true;
+    $("#copy-date-list").innerHTML = dates.map(item => `<label class="date-choice">
+      <input type="checkbox" name="copy-date" value="${escapeHtml(item.key)}">
+      <span><strong>${escapeHtml(fullDate(dateFromLocalKey(item.key, 12, 0)))}</strong><small>${plural(item.count, "entry", "entries")}</small></span>
+    </label>`).join("");
+    $("#copy-dates-dialog").showModal();
+  }
+
+  function updateCopyDatesSelection() {
+    $("#copy-selected-dates").disabled = $$("input[name='copy-date']:checked", $("#copy-date-list")).length === 0;
+    $("#copy-dates-error").textContent = "";
+  }
+
+  async function copySelectedDates(event) {
+    event.preventDefault();
+    const dates = new FormData(event.currentTarget).getAll("copy-date").map(String);
+    if (!dates.length) {
+      $("#copy-dates-error").textContent = "Choose at least one date.";
+      return;
+    }
+    const copied = await copyForAI("specific_dates", dates, event.submitter);
+    if (copied) $("#copy-dates-dialog").close();
+  }
+
+  async function copyForAI(mode, dateKeys, button) {
     setBusy(button, true, "Copying…");
     try {
-      await copyText(JSON.stringify(buildReadableExport(), null, 2));
-      showToast("Tracker data copied for AI");
+      const exportData = buildReadableExport(mode, dateKeys);
+      if (!exportData.entries.length) {
+        showToast("There are no entries to copy");
+        return false;
+      }
+      await copyText(JSON.stringify(exportData, null, 2));
+      showToast(mode === "today" ? "Today's entries copied for AI" : mode === "all" ? "All entries copied for AI" : "Selected dates copied for AI");
+      return true;
     } catch (err) {
       showToast("Data could not be copied");
+      return false;
     } finally {
       setBusy(button, false);
     }
   }
 
-  function buildReadableExport() {
-    const categories = sortedCategories().map(category => ({
+  function buildReadableExport(mode = "all", dateKeys = null) {
+    const selectedDates = mode === "all"
+      ? null
+      : [...new Set((dateKeys || []).map(String))].sort();
+    const selectedDateSet = selectedDates ? new Set(selectedDates) : null;
+    const sourceEntries = state.entries.filter(entry => !selectedDateSet || selectedDateSet.has(localDateKey(new Date(entry.occurredAt))));
+    const usedCategoryIds = new Set(sourceEntries.map(entry => entry.categoryId));
+    const sourceCategories = mode === "all" ? state.categories : state.categories.filter(category => usedCategoryIds.has(category.id));
+    const categories = sortedCategories(sourceCategories).map(category => ({
       id: category.id,
       name: category.name,
       inputType: category.type,
@@ -694,7 +794,7 @@
       updatedAt: category.updatedAt
     }));
     const categoryMap = new Map(categories.map(category => [category.id, category]));
-    const entries = [...state.entries]
+    const entries = [...sourceEntries]
       .sort((a, b) => new Date(a.occurredAt) - new Date(b.occurredAt))
       .map(entry => ({
         id: entry.id,
@@ -714,10 +814,23 @@
       app: "Tracker",
       exportedAt: new Date().toISOString(),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown",
-      summary: { categories: categories.length, entries: entries.length, firstEntryAt: entries[0]?.occurredAt || null, lastEntryAt: entries.at(-1)?.occurredAt || null },
+      selection: {
+        mode,
+        dates: selectedDates || availableEntryDates().map(item => item.key).sort()
+      },
+      summary: { categories: categories.length, entries: entries.length, dates: new Set(entries.map(entry => entry.localDate)).size, firstEntryAt: entries[0]?.occurredAt || null, lastEntryAt: entries.at(-1)?.occurredAt || null },
       categories,
       entries
     };
+  }
+
+  function availableEntryDates() {
+    const counts = new Map();
+    state.entries.forEach(entry => {
+      const key = localDateKey(new Date(entry.occurredAt));
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    return [...counts].map(([key, count]) => ({ key, count })).sort((a, b) => b.key.localeCompare(a.key));
   }
 
   function sortedCategories(categories = state.categories) {
@@ -920,6 +1033,7 @@
 
   function openConfirm({ kicker = "Confirm", title, message, label, action }) {
     confirmAction = action;
+    $("#confirm-dialog").returnValue = "";
     $("#confirm-kicker").textContent = kicker;
     $("#confirm-title").textContent = title;
     $("#confirm-message").textContent = message;
@@ -1158,6 +1272,7 @@
 
   function isToday(key) { return key === localDateKey(new Date()); }
   function longDate(date) { return new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" }).format(date); }
+  function fullDate(date) { return new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date); }
   function compactDate(date) { return new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short" }).format(date); }
   function shortTime(value) { return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }
   function shortDateTime(value) { return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }

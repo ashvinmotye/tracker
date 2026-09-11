@@ -371,6 +371,8 @@ input::placeholder, textarea::placeholder { color: var(--paper-24); }
 .settings-card { min-height: 220px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 2rem; padding: 1.25rem; }
 .settings-card h2 { margin: .25rem 0 .35rem; font-size: 1.05rem; }
 .settings-card p:not(.section-label) { margin: 0; color: var(--paper-56); font-size: .88rem; }
+.settings-actions { width: 100%; display: grid; gap: .55rem; }
+.settings-actions .button { width: 100%; }
 .section-label { margin: 0; color: var(--paper-56); font-size: .7rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
 .danger-card { border-style: dashed; }
 .data-counts { margin: 1.5rem 0 0; color: var(--paper-56); font-size: .82rem; }
@@ -411,6 +413,27 @@ input::placeholder, textarea::placeholder { color: var(--paper-24); }
 .radio-card input { width: 18px; min-height: 18px; margin: .2rem 0 0; padding: 0; accent-color: var(--paper); }
 .radio-card strong, .radio-card small { display: block; }
 .radio-card small { color: var(--paper-56); margin-top: .12rem; }
+
+.date-choice-list {
+  max-height: min(50vh, 420px);
+  display: grid;
+  gap: .55rem;
+  overflow: auto;
+}
+.date-choice {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  border: 1px solid var(--paper-16);
+  border-radius: var(--radius-small);
+  padding: .8rem;
+  cursor: pointer;
+}
+.date-choice:has(input:checked) { border-color: var(--paper); background: var(--paper-07); }
+.date-choice input { width: 19px; min-height: 19px; margin: 0; padding: 0; accent-color: var(--paper); }
+.date-choice strong, .date-choice small { display: block; }
+.date-choice strong { font-size: .9rem; }
+.date-choice small { margin-top: .12rem; color: var(--paper-56); font-size: .78rem; }
 
 .toast {
   position: fixed;
@@ -486,6 +509,7 @@ input::placeholder, textarea::placeholder { color: var(--paper-24); }
   .topbar .header-date { max-width: 165px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .field-row { grid-template-columns: 1fr; }
   .modal { width: 100%; max-width: none; max-height: 92vh; margin: auto 0 0; border-radius: var(--radius) var(--radius) 0 0; border-inline: 0; border-bottom: 0; }
+  #entry-dialog { width: calc(100% - 1.5rem); margin: auto .75rem .75rem; border: 1px solid var(--paper-16); border-radius: var(--radius); }
   .modal-actions .button { flex: 1; }
   .date-control { width: 100%; }
   .date-picker { flex: 1; }

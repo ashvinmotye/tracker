@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;400;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
   <noscript><div class="noscript">Tracker needs JavaScript to encrypt and manage your local data.</div></noscript>
@@ -169,7 +169,7 @@
               <div>
                 <p class="section-label">Security</p>
                 <h2>Master password</h2>
-                <p>Change the password used to encrypt this tracker.</p>
+                <p>Change your encryption password. Tracker locks after 30 seconds of inactivity or whenever it leaves the screen.</p>
               </div>
               <button id="change-password-button" class="button secondary" type="button">Change password</button>
             </section>
@@ -189,7 +189,11 @@
                 <h2>Copy for AI</h2>
                 <p>Copy structured JSON to paste directly into an AI chat. Clipboard contents are not encrypted.</p>
               </div>
-              <button id="copy-for-ai" class="button secondary" type="button">Copy for AI</button>
+              <div class="settings-actions">
+                <button id="copy-today" class="button secondary" type="button">Copy today</button>
+                <button id="copy-specific-dates" class="button secondary" type="button">Copy specific dates</button>
+                <button id="copy-all" class="button secondary" type="button">Copy all</button>
+              </div>
             </section>
 
             <section class="settings-card">
@@ -315,6 +319,7 @@
       <label class="field">
         <span>Category</span>
         <select id="entry-category" required></select>
+        <small id="entry-category-count" aria-live="polite" hidden></small>
       </label>
       <div id="scale-input-wrap" class="scale-wrap" hidden>
         <div class="scale-readout">
@@ -390,6 +395,27 @@
     </form>
   </dialog>
 
+  <dialog id="copy-dates-dialog" class="modal">
+    <form id="copy-dates-form" method="dialog" class="modal-card narrow">
+      <div class="modal-head">
+        <div>
+          <p class="section-label">Copy for AI</p>
+          <h2>Choose dates</h2>
+        </div>
+        <button class="icon-button" data-close-dialog type="button" aria-label="Close">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <p class="dialog-copy">Select one or more dates to include.</p>
+      <div id="copy-date-list" class="date-choice-list" role="group" aria-label="Dates with entries"></div>
+      <p id="copy-dates-error" class="form-error" role="alert"></p>
+      <div class="modal-actions">
+        <button class="button quiet" data-close-dialog type="button">Cancel</button>
+        <button id="copy-selected-dates" class="button primary" type="submit" disabled>Copy selected</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="import-dialog" class="modal">
     <form id="import-form" method="dialog" class="modal-card narrow">
       <div class="modal-head">
@@ -440,6 +466,6 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script src="app.js?v=7" defer></script>
+  <script src="app.js?v=9" defer></script>
 </body>
 </html>
